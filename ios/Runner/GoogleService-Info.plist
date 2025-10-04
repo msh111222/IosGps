@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>API_KEY</key>
-	<string>AIzaSyDcsxOgVdzbFq3C9ErH5y_vbK1bdCLWroM</string>
+	<string>AIzaSyDZWxIxVYr6McPhKmYz_dXkP3xPsVWuqPQ</string>
 	<key>GCM_SENDER_ID</key>
 	<string>958764576835</string>
 	<key>PLIST_VERSION</key>
@@ -13,7 +13,7 @@
 	<key>PROJECT_ID</key>
 	<string>gps-test-ios</string>
 	<key>STORAGE_BUCKET</key>
-	<string>gps-test-ios.firebasestorage.app</string>
+	<string>gps-test-ios.appspot.com</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:958764576835:ios:1bf1272656858091a4e4f6</string>
+	<string>1:958764576835:ios:b9c6a4c1c6c6c6c6c6c6c6</string>
 </dict>
 </plist>
