@@ -1,34 +1,56 @@
-name: iOS Distribution
+name: iOS Build
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ master ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ master ]
+  workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
+  build-ios:
+    runs-on: macos-latest
+    
     steps:
-      - uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v4
       
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.13.0'
-          channel: 'stable'
-          
-      - name: Install Flutter dependencies
-        run: flutter pub get
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.13.0'
+        channel: 'stable'
         
-      - name: Build iOS
-        run: flutter build ipa --release --no-codesign
+    - name: Get Flutter dependencies
+      run: flutter pub get
+        
+    - name: Build iOS App
+      run: |
+        flutter clean
+        flutter pub get
+        cd ios
+        pod install
+        cd ..
+        flutter build ios --release --no-codesign
+      env:
+        IPHONEOS_DEPLOYMENT_TARGET: 13.0
+        
+    - name: Create IPA file
+      run: |
+        echo "=== 检查构建输出 ==="
+        find build/ios/ -name "*.app" -type d
+        echo "=== 创建标准 IPA ==="
+        mkdir -p Payload
+        cp -r build/ios/Release-iphoneos/Runner.app Payload/
+        zip -r Runner.ipa Payload
+        rm -rf Payload
+        echo "=== IPA 创建完成 ==="
+        ls -la Runner.ipa
 
-      - name: Upload to Firebase App Distribution
-        uses: wzieba/Firebase-Distribution-Github-Action@v1
-        with:
-          appId: ${{secrets.FIREBASE_APP_ID}}
-          token: ${{secrets.FIREBASE_TOKEN}}
-          groups: testers
-          file: build/ios/ipa/gps_test_ios.ipa
+    - name: Upload to Firebase App Distribution
+      uses: wzieba/Firebase-Distribution-Github-Action@v1
+      with:
+        appId: ${{secrets.FIREBASE_APP_ID}}
+        token: ${{secrets.FIREBASE_TOKEN}}
+        groups: testers
+        file: Runner.ipa
