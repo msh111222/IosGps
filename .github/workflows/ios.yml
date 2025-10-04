@@ -47,10 +47,8 @@ jobs:
         echo "=== IPA 创建完成 ==="
         ls -la Runner.ipa
 
-    - name: Upload to Firebase App Distribution
-      uses: wzieba/Firebase-Distribution-Github-Action@v1
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
       with:
-        appId: ${{secrets.FIREBASE_APP_ID}}
-        token: ${{secrets.FIREBASE_TOKEN}}
-        groups: testers
-        file: Runner.ipa
+        name: ios-build
+        path: Runner.ipa
