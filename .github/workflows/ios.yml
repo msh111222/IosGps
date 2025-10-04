@@ -23,7 +23,7 @@ jobs:
         run: flutter pub get
         
       - name: Build iOS
-        run: flutter build ios --release --no-codesign
+        run: flutter build ipa --release --no-codesign
 
       - name: Upload to Firebase App Distribution
         uses: wzieba/Firebase-Distribution-Github-Action@v1
@@ -31,4 +31,4 @@ jobs:
           appId: ${{secrets.FIREBASE_APP_ID}}
           token: ${{secrets.FIREBASE_TOKEN}}
           groups: testers
-          file: build/ios/iphoneos/Runner.app
+          file: build/ios/ipa/gps_test_ios.ipa
