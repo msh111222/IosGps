@@ -1,125 +1,183 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
+
+// 位置数据模型
+class LocationData {
+  final double latitude;
+  final double longitude;
+  final double accuracy;
+  final double speed;
+  final double direction;
+  final DateTime timestamp;
+
+  LocationData({
+    required this.latitude,
+    required this.longitude,
+    required this.accuracy,
+    required this.speed,
+    required this.direction,
+    required this.timestamp,
+  });
+
+  factory LocationData.fromJson(Map<String, dynamic> json) {
+    return LocationData(
+      latitude: double.parse(json['latitude'].toString()),
+      longitude: double.parse(json['longitude'].toString()),
+      accuracy: double.parse(json['accuracy'].toString()),
+      speed: double.parse(json['speed'].toString()),
+      direction: double.parse(json['direction'].toString()),
+      timestamp: DateTime.parse(json['timestamp']),
+    );
+  }
+}
+
+// 位置数据提供者
+class LocationProvider with ChangeNotifier {
+  LocationData? _currentLocation;
+  Timer? _timer;
+  final String baseUrl = 'http://8.148.153.92:8081';
+
+  LocationData? get currentLocation => _currentLocation;
+
+  LocationProvider() {
+    // 每5秒获取一次最新位置
+    _timer = Timer.periodic(Duration(seconds: 5), (_) => fetchLatestLocation());
+  }
+
+  Future<void> fetchLatestLocation() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/api/location/latest/1'));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          _currentLocation = LocationData.fromJson(data['data']);
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      print('获取位置失败: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+}
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => LocationProvider(),
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'GPS 追踪',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a blue toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        primarySwatch: Colors.blue,
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: HomePage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
+class HomePage extends StatefulWidget {
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _HomePageState createState() => _HomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+class _HomePageState extends State<HomePage> {
+  GoogleMapController? _mapController;
+  Set<Marker> _markers = {};
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
+        title: Text('GPS 追踪'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
-        ),
+      body: Consumer<LocationProvider>(
+        builder: (context, provider, child) {
+          final location = provider.currentLocation;
+          
+          if (location != null) {
+            final position = LatLng(location.latitude, location.longitude);
+            
+            // 更新地图标记
+            _markers = {
+              Marker(
+                markerId: MarkerId('current_location'),
+                position: position,
+                infoWindow: InfoWindow(
+                  title: '当前位置',
+                  snippet: '精度: ${location.accuracy.toStringAsFixed(2)}m',
+                ),
+              ),
+            };
+
+            // 更新地图视角
+            _mapController?.animateCamera(
+              CameraUpdate.newLatLngZoom(position, 15),
+            );
+
+            return Column(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: GoogleMap(
+                    initialCameraPosition: CameraPosition(
+                      target: position,
+                      zoom: 15,
+                    ),
+                    markers: _markers,
+                    onMapCreated: (controller) => _mapController = controller,
+                  ),
+                ),
+                Expanded(
+                  flex: 1,
+                  child: Container(
+                    padding: EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('纬度: ${location.latitude.toStringAsFixed(6)}'),
+                        Text('经度: ${location.longitude.toStringAsFixed(6)}'),
+                        Text('精度: ${location.accuracy.toStringAsFixed(2)}m'),
+                        Text('速度: ${(location.speed * 3.6).toStringAsFixed(2)}km/h'),
+                        Text('方向: ${location.direction.toStringAsFixed(1)}°'),
+                        Text('时间: ${location.timestamp.toString()}'),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+
+          return Center(
+            child: CircularProgressIndicator(),
+          );
+        },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
+  }
+
+  @override
+  void dispose() {
+    _mapController?.dispose();
+    super.dispose();
   }
 }
