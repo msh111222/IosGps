@@ -208,7 +208,7 @@ class LocationProvider with ChangeNotifier {
       }
     } catch (e) {
       print('❌ 获取位置失败: $e');
-      _error = '网络错误: $e';
+      _error = '错误: $e';
       notifyListeners();
     }
   }
