@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
@@ -179,6 +180,16 @@ class LocationProvider with ChangeNotifier {
   Timer? _timer;
   String _error = '';
   final String baseUrl = 'http://8.148.153.92:8081';
+  final Map<String, String> headers = {
+    'Accept': 'application/json, text/plain, */*',
+    'Accept-Encoding': 'gzip, deflate',
+    'Accept-Language': 'zh-CN,zh;q=0.9',
+    'Connection': 'keep-alive',
+    'Host': '8.148.153.92:8081',
+    'Origin': 'http://8.148.153.92:8081',
+    'Referer': 'http://8.148.153.92:8081/',
+    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148'
+  };
 
   LocationData? get currentLocation => _currentLocation;
   String get error => _error;
@@ -189,22 +200,35 @@ class LocationProvider with ChangeNotifier {
 
   Future<void> fetchLatestLocation() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/api/location/latest/1'));
-      print('📡 API响应: ${response.statusCode} - ${response.body}');
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['success'] == true && data['data'] != null) {
-          _currentLocation = LocationData.fromJson(data['data']);
-          _error = '';
-          notifyListeners();
+      final client = http.Client();
+      try {
+        final response = await client.get(
+          Uri.parse('$baseUrl/api/location/latest/1'),
+          headers: headers,
+        ).timeout(
+          Duration(seconds: 10),
+          onTimeout: () {
+            throw TimeoutException('请求超时，请检查网络连接');
+          },
+        );
+        print('📡 API响应: ${response.statusCode} - ${response.body}');
+        
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          if (data['success'] == true && data['data'] != null) {
+            _currentLocation = LocationData.fromJson(data['data']);
+            _error = '';
+            notifyListeners();
+          } else {
+            _error = '服务器返回错误: ${data['message']}';
+            notifyListeners();
+          }
         } else {
-          _error = '服务器返回错误: ${data['message']}';
+          _error = 'HTTP错误: ${response.statusCode}';
           notifyListeners();
         }
-      } else {
-        _error = 'HTTP错误: ${response.statusCode}';
-        notifyListeners();
+      } finally {
+        client.close();
       }
     } catch (e) {
       print('❌ 获取位置失败: $e');
